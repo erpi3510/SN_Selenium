@@ -70,8 +70,9 @@ try:
     print("Seitentitel:", driver.title)
     
     print("Warte 3 Minuten...")
-    time.sleep(180)  # 3 Minuten warten (180 Sekunden)
-    print("Warte 3 Minuten... done")
+    while True:
+        time.sleep(180)  # 3 Minuten warten
+        print("Warte 3 Minuten...")  # Oder eine andere Aktion, wenn gewünscht
 
 except Exception as e:
     print(f"Fehler: {str(e)}")
@@ -79,7 +80,7 @@ except Exception as e:
     print("Aktuelle URL nach Fehler:", driver.current_url)
     # Optional: Screenshot erstellen, um mehr Informationen zu bekommen
     driver.save_screenshot("error_screenshot.png")
-#finally:
+finally:
     # WebDriver beenden
     #driver.quit()
     print("... done")
