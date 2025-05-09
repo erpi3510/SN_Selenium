@@ -79,7 +79,7 @@ except Exception as e:
     print("Aktuelle URL nach Fehler:", driver.current_url)
     # Optional: Screenshot erstellen, um mehr Informationen zu bekommen
     driver.save_screenshot("error_screenshot.png")
-finally:
+#finally:
     # WebDriver beenden
     #driver.quit()
     print("... done")
