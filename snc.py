@@ -7,9 +7,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
+# Funktion, um ein Docker-Secret zu lesen
+def get_docker_secret(secret_name):
+    secret_path = f"/run/secrets/{secret_name}"
+    try:
+        with open(secret_path, 'r') as file:
+            secret = file.read().strip()  # Entfernt führende und nachfolgende Leerzeichen
+        return secret
+    except FileNotFoundError:
+        print(f"Secret {secret_name} nicht gefunden!")
+        return None
+
 # Login-Daten
 username = "atf.user"
-password = "YN)@-?@?{MoBuCr1"
+password = get_docker_secret("sn_password")
 base_url = "https://dev196713.service-now.com"
 
 # Headless Chrome konfigurieren
