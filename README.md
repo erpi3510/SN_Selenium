@@ -57,3 +57,11 @@ docker service create \
 
   Windows:
 docker service create --name selenium-service --secret sn_password --secret sn_user --secret sn_url noered2/selenium-runner:latest
+
+
+docker service create \
+  --name selenium-service \
+  --secret sn_password \
+  --secret sn_user \
+  --secret sn_url \
+  selenium-runner
