@@ -49,4 +49,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy your application
 COPY . .
 
-CMD ["python", "/app/snc.py"]
+#CMD ["python", "/app/snc.py"]
