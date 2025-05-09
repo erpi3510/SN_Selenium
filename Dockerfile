@@ -25,14 +25,13 @@ RUN apt-get update && apt-get install -y \
     libvulkan1 \
     libxshmfence1
 
-# Install Google Chrome
-RUN wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y /tmp/chrome.deb && \
+# Install Google Chrome for Testing (Version 136)
+RUN wget -O /tmp/chrome.deb https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.92/linux64/chrome-linux64.zip && \
+    unzip /tmp/chrome.deb -d /opt/google/chrome && \
     rm /tmp/chrome.deb
 
-# Install matching ChromeDriver (Version 136)
-RUN CHROME_DRIVER_VERSION=136.0.7103.92 && \
-    wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROME_DRIVER_VERSION/chromedriver_linux64.zip && \
+# Install matching ChromeDriver (Version 136 for Chrome for Testing)
+RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.92/linux64/chromedriver-linux64.zip && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
@@ -47,4 +46,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy your application
 COPY . .
 
+# Set the entry point (Python script to run)
 CMD ["python", "snc.py"]
