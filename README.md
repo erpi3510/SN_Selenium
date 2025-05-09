@@ -17,13 +17,16 @@ Repeat the process for sn_user and sn_url by setting the corresponding values fo
 
 Step 4: Start the service
 Create and start the Docker service with the secrets:
-
+LINUx:
 docker service create \
   --name selenium-service \
   --secret sn_password \
   --secret sn_user \
   --secret sn_url \
   noered2/selenium-runner:latest
+  
+Windows:
+docker service create --name selenium-service --secret sn_password --secret sn_user --secret sn_url noered2/selenium-runner:latest
 
 DE
 
@@ -44,10 +47,13 @@ Wiederhole den Vorgang für sn_user und sn_url, indem du die entsprechenden Wert
 
 Schritt 4: Service starten
 Erstelle und starte den Docker-Service mit den Secrets:
-
+LINUX
 docker service create \
   --name selenium-service \
   --secret sn_password \
   --secret sn_user \
   --secret sn_url \
   noered2/selenium-runner:latest
+
+  Windows:
+docker service create --name selenium-service --secret sn_password --secret sn_user --secret sn_url noered2/selenium-runner:latest
