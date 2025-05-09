@@ -29,18 +29,19 @@ RUN apt-get update && apt-get install -y \
 
 # Google Chrome installieren
 RUN wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt-get update && apt-get install -y ./google-chrome.deb && \
+    apt-get install -y ./google-chrome.deb && \
     rm google-chrome.deb
 
-# Automatisch passende ChromeDriver-Version zur installierten Chrome-Version holen
+# Automatisch passende ChromeDriver-Version zur installierten Chrome-Version installieren
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
-    echo "Installed Chrome version: $CHROME_VERSION" && \
-    DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
-        | python3 -c "import sys, json; print(json.load(sys.stdin)['channels']['Stable']['version'])") && \
-    echo "Fetching ChromeDriver version: $DRIVER_VERSION" && \
-    wget -q -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${DRIVER_VERSION}/linux64/chromedriver-linux64.zip" && \
+    echo "Detected Chrome version: $CHROME_VERSION" && \
+    MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1) && \
+    DRIVER_URL=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
+        | python3 -c "import sys, json; print([v['downloads']['chromedriver'][0]['url'] for k,v in json.load(sys.stdin)['versions'].items() if v['version'].startswith('$CHROME_VERSION') or v['version'].startswith('$MAJOR_VERSION.')][0])") && \
+    echo "Downloading ChromeDriver from $DRIVER_URL" && \
+    wget -q -O /tmp/chromedriver.zip "$DRIVER_URL" && \
     unzip /tmp/chromedriver.zip -d /tmp/ && \
-    mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    mv /tmp/chromedriver*/chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
     rm -rf /tmp/chromedriver*
 
@@ -48,7 +49,7 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Arbeitsverzeichnis
+# Arbeitsverzeichnis setzen
 WORKDIR /app
 COPY . .
 
