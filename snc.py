@@ -19,9 +19,9 @@ def get_docker_secret(secret_name):
         return None
 
 # Login-Daten
-username = "atf.user"
+username = get_docker_secret("sn_user")
 password = get_docker_secret("sn_password")
-base_url = "https://dev196713.service-now.com"
+base_url = get_docker_secret("sn_url")
 
 # Headless Chrome konfigurieren
 options = Options()
