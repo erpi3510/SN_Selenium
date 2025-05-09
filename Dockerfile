@@ -30,14 +30,14 @@ RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.d
     apt install -y ./google-chrome-stable_current_amd64.deb
 
 # Installiere die passende Version von ChromeDriver für die Version von Chrome
+# Installiere die passende Version von ChromeDriver für Version 136.0.7103.92
 RUN google-chrome --version && \
-    CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1,2) && \
     CHROMEDRIVER_VERSION="136.0.7103.92" && \
     wget -q -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
-    mkdir -p /usr/local/bin && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
+    rm /tmp/chromedriver.zip && \
+    chmod +x /usr/local/bin/chromedriver-linux64/chromedriver && \
+    mv /usr/local/bin/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
 
 # Set working directory
 WORKDIR /app
