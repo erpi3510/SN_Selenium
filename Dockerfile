@@ -1,7 +1,6 @@
-# Verwenden des offiziellen Python-Images
 FROM python:3.11
 
-# Installiere benötigte Pakete
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -9,32 +8,42 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     fonts-liberation \
-    libappindicator3-1 \
     libasound2 \
-    jq \
-    google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libgdk-pixbuf2.0-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    libu2f-udev \
+    libvulkan1 \
+    libxshmfence1
 
-# Installiere Chrome und lade den passenden ChromeDriver
-RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
-    DRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
-    | jq -r --arg v "$CHROME_VERSION" '.channels.Stable.version') && \
-    curl -Lo /tmp/chromedriver.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${DRIVER_VERSION}/linux64/chromedriver-linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin && \
+# Install Google Chrome
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt install -y ./google-chrome-stable_current_amd64.deb
+
+# Install ChromeDriver matching the installed Chrome version
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9.]+' | head -1 | cut -d. -f1) && \
+    wget -q -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION})/chromedriver_linux64.zip" && \
+    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
 
-# Setze das Arbeitsverzeichnis
+# Set working directory
 WORKDIR /app
 
-# Kopiere requirements.txt in das Arbeitsverzeichnis
+# Install Python dependencies
 COPY requirements.txt .
-
-# Installiere Python-Abhängigkeiten
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Kopiere den Rest der Anwendung
+# Copy your application
 COPY . .
 
-# Setze den Startbefehl (kann später nach Bedarf angepasst werden)
 CMD ["python", "snc.py"]
