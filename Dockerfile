@@ -27,18 +27,18 @@ RUN apt-get update && apt-get install -y \
     libvulkan1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Installiere eine bekannte stabile Version von Chrome und ChromeDriver
+# Google Chrome installieren (aktuelle stabile Version)
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb
 
-# Installiere eine bekannte Version von ChromeDriver
-RUN DRIVER_VERSION="113.0.5672.63" && \
-    wget -q --show-progress -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
+# Passende ChromeDriver-Version (v136.0.7103.92) installieren
+RUN DRIVER_VERSION="136.0.7103.92" && \
+    wget -q -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${DRIVER_VERSION}/linux64/chromedriver-linux64.zip" && \
+    unzip /tmp/chromedriver.zip -d /tmp/ && \
+    mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
-
+    rm -rf /tmp/chromedriver*
 
 # Optional: Python-Abhängigkeiten installieren
 COPY requirements.txt .
