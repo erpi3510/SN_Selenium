@@ -23,7 +23,7 @@ jobs:
         uses: ServiceNow/servicenow-devops-change@v5.1.0  # Aktuelle Version anpassen
         with:
           devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
-          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          instance-url: 'https://dev215185.service-now.com'
           tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
           context-github: ${{ toJSON(github) }}
           job-name: 'ServiceNow DevOps Change'
