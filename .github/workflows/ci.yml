@@ -1,54 +1,35 @@
 name: Simple Test Pipeline mit ServiceNow Change Control
-
-on:
+'on':
   push:
-    branches: [CICD]
-
+    branches:
+      - CICD
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Quellcode auschecken
         uses: actions/checkout@v4
-      
       - name: Einfacher Build Schritt
         run: echo "Build erfolgreich!"
-
   ServiceNowDevOpsChange:
     needs: build
     runs-on: ubuntu-latest
     environment: Snow
-    name: 'ServiceNow DevOps Change'
+    name: ServiceNow DevOps Change
     steps:
       - name: ServiceNow Change
-        # Fortoolcustom action based change, remove or disable the 'deployment-gate' configuration and the 'deploy' step. Ensure to update to the latest version of the custom action, for e.g. ServiceNow/servicenow-devops-change@v5.1.0
         uses: ServiceNow/servicenow-devops-change@v6.0.0
         with:
-          # Devops Integration Token
-          devops-integration-user-name: ${{ secrets.SN_DEVOPS_USER }}
-          # ServiceNow Instance URL
-          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
-          instance-url: ${{ secrets.SN_INSTANCE_URL }}
-          # Orchestration Tool Id
-          devops-integration-user-password: ${{ secrets.SN_DEVOPS_PASSWORD }}
-          # GitHub Context
-          context-github: ${{ toJSON(github) }}
-          # Display Name of the Job
-          job-name: 'ServiceNow DevOps Change'
-          # change-request: snDevOpsChange
-          # Unsupported fields are: risk, impact, and risk_impact_analysis
-          change-request: '{"attributes":{"requested_by":{"name": "Test User"},"assignment_group":{"name": "Change Approval Team"},"priority": "2","comments": "This is a sample pipeline script to be added in your change step","work_notes": "Update this to work_notes","start_date": "2023-09-07 11:59:59","end_date": "2023-09-09 11:59:59"}}'
-          # You can specify the requested_by attribute either with name or sys_id. Example: "requested_by":{"name": "Test User"} or "requested_by": "62826bf03710200044e0bfc8bcbe5df1"
-          # You can specify the assignment_group attribute either with name or sys_id. Example: "assignment_group":{"name": "Change Approval Team"} or "assignment_group": "5f721d93c0a8010e015533746de18bf9"
-          # start_date: This is the planned start date
-          # end_date: This is the planned end date
-          # For deployment gate based change, uncomment the 'deployment-gate' configuration and the 'deploy' step 
-          # deployment-gate: '{"environment": "deploy-gates-demo", "jobName": "Deploy"}'
-# Optional: Deployment Schritt (z.B. Pause bis Change Request genehmigt)
-# deploy:
-#   needs: ServiceNowDevOpsChange
-#   runs-on: ubuntu-latest
-#   environment: production
-#   steps:
-#     - name: Deployment ausführen
-#       run: echo "Deployment läuft nach Genehmigung des Change Requests"
+          devops-integration-user-name: '${{ secrets.SN_DEVOPS_USER }}'
+          devops-integration-user-password: '${{ secrets.SN_DEVOPS_PASSWORD }}'
+          instance-url: '${{ secrets.SN_INSTANCE_URL }}'
+          tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
+          context-github: '${{ toJSON(github) }}'
+          job-name: ServiceNow DevOps Change
+          change-request: >-
+            {"attributes":{"requested_by":{"name": "Test
+            User"},"assignment_group":{"name": "Change Approval
+            Team"},"priority": "2","comments": "This is a sample pipeline script
+            to be added in your change step","work_notes": "Update this to
+            work_notes","start_date": "2023-09-07 11:59:59","end_date":
+            "2023-09-09 11:59:59"}}
