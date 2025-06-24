@@ -1,17 +1,39 @@
-# .github/workflows/main.yml
-
-name: Simple Test Pipeline
+name: Simple Test Pipeline mit ServiceNow Change Control
 
 on:
   push:
     branches: [CICD]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Quellcode auschecken
         uses: actions/checkout@v4
+      
+      - name: Einfacher Build Schritt
+        run: echo "Build erfolgreich!"
 
-      - name: Einfacher Testschritt
-        run: echo "Workflow läuft erfolgreich!"
+  ServiceNowDevOpsChange:
+    needs: build
+    runs-on: ubuntu-latest
+    name: 'ServiceNow DevOps Change'
+    steps:
+      - name: ServiceNow Change
+        uses: ServiceNow/servicenow-devops-change@v5.1.0  # Aktuelle Version anpassen
+        with:
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          context-github: ${{ toJSON(github) }}
+          job-name: 'ServiceNow DevOps Change'
+          change-request: '{"attributes":{"requested_by":{"name": "Test User"},"assignment_group":{"name": "Change Approval Team"},"priority": "2","comments": "Change request created by GitHub Actions pipeline","work_notes": "Automatische Change Control aktiviert","start_date": "2025-06-24 10:00:00","end_date": "2025-06-25 18:00:00"}}'
+
+# Optional: Deployment Schritt (z.B. Pause bis Change Request genehmigt)
+# deploy:
+#   needs: ServiceNowDevOpsChange
+#   runs-on: ubuntu-latest
+#   environment: production
+#   steps:
+#     - name: Deployment ausführen
+#       run: echo "Deployment läuft nach Genehmigung des Change Requests"
