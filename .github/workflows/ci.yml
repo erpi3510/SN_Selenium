@@ -17,6 +17,7 @@ jobs:
   ServiceNowDevOpsChange:
     needs: build
     runs-on: ubuntu-latest
+    environment: Snow
     name: 'ServiceNow DevOps Change'
     steps:
       - name: ServiceNow Change
