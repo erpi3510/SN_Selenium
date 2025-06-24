@@ -25,7 +25,7 @@ jobs:
         with:
           devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
           instance-url: ${{ secrets.SN_INSTANCE_URL }}
-          tool-id: 'd7bd2852835a6210bb48f496feaad3c1'
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
           context-github: ${{ toJSON(github) }}
           job-name: 'ServiceNow DevOps Change'
           change-request: '{"attributes":{"requested_by":{"name": "Test User"},"assignment_group":{"name": "Change Approval Team"},"priority": "2","comments": "Change request created by GitHub Actions pipeline","work_notes": "Automatische Change Control aktiviert","start_date": "2025-06-24 10:00:00","end_date": "2025-06-25 18:00:00"}}'
