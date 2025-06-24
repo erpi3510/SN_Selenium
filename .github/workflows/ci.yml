@@ -1,48 +1,30 @@
-# .github/workflows/main.yml
-
 name: CI Pipeline
 
 on:
   push:
-    branches: [main]      # oder z. B. ["main", "develop"]
+    branches:
+      - CICD
   pull_request:
-    branches: [main]
+    branches:
+      - CICD
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Quellcode auschecken
-        uses: actions/checkout@v4
 
-      - name: Code kompilieren
-        run: echo "Compiling the code..."
-
-  test:
-    runs-on: ubuntu-latest
-    needs: build
     steps:
-      - name: Unit Tests
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Use Debian-based Docker container
         run: |
-          echo "Running unit tests... This will take about 60 seconds."
-          sleep 60
-          echo "Tests abgeschlossen"
-
-  lint:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Code-Analyse (Linting)
-        run: |
-          echo "Linting code..."
-          sleep 10
-          echo "Keine Fehler gefunden"
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [test, lint]
-    steps:
-      - name: Deploy Schritt
-        run: |
-          echo "Deploying application..."
-          echo "Application successfully deployed."
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace python:3.9-slim bash -c "\
+            apt-get update && apt-get install -y gcc && \
+            pip install --upgrade pip && \
+            pip install -r requirements.txt && \
+            pytest"
