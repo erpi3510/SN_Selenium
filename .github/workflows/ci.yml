@@ -17,7 +17,7 @@ jobs:
           SN_DEVOPS_PASSWORD: ${{ secrets.SN_DEVOPS_PASSWORD }}
         run: |
           # Setze Basic Auth Header (Base64 codiert)
-          ENCODED_AUTH=$(echo -n "$SN_DEVOPS_USER:$SN_DEVOPS_PASSWORD" | base64)
+          ENCODED_AUTH=$(echo -n "${SN_DEVOPS_USER}:${SN_DEVOPS_PASSWORD}" | base64)
 
           echo "Sende Anfrage an: $SN_INSTANCE_URL"
 
