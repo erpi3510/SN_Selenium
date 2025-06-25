@@ -6,6 +6,7 @@ name: Simple Test Pipeline mit ServiceNow Change Control
 jobs:
   create-servicenow-change:
     runs-on: ubuntu-latest
+    environment: Snow
     steps:
       - name: Change Request via REST API
         env:
