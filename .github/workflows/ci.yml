@@ -6,6 +6,14 @@ on:
       - CICD
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+      - name: Einfacher Build Schritt
+        run: echo "Build erfolgreich!"
+        
   create-servicenow-change:
     runs-on: ubuntu-latest
     environment: Snow
