@@ -1,9 +1,10 @@
-# da
 name: Simple Test Pipeline mit ServiceNow Change Control
-'on':
+
+on:
   push:
     branches:
       - CICD
+
 jobs:
   create-servicenow-change:
     runs-on: ubuntu-latest
@@ -15,9 +16,12 @@ jobs:
           SN_DEVOPS_USER: ${{ secrets.SN_DEVOPS_USER }}
           SN_DEVOPS_PASSWORD: ${{ secrets.SN_DEVOPS_PASSWORD }}
         run: |
-          ENCODED_AUTH=$(echo -n "abel.tuter:ich7O!&{}h7=t@-de*X2Bxnt]$P(YnQ@nBDz%GvRE}_8kp>_}BCX1+]-I+H+Q>Fek;vpW+_XBbVOyZcscFK,5fl8}zLRq9C$KcC0" | base64)
+          # Setze Basic Auth Header (Base64 codiert)
+          ENCODED_AUTH=$(echo -n "$SN_DEVOPS_USER:$SN_DEVOPS_PASSWORD" | base64)
 
-          curl -X POST "$SN_INSTANCE_URL/api/now/table/change_request" \
+          echo "Sende Anfrage an: $SN_INSTANCE_URL"
+
+          curl -v -X POST "$SN_INSTANCE_URL/api/now/table/change_request" \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \
             -H "Authorization: Basic $ENCODED_AUTH" \
