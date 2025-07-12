@@ -60,7 +60,7 @@ try:
     print("Login erfolgreich. Weiterleitung...")
 
     # Zielseite nach Login aufrufen
-    test_runner_url = f"{base_url}/atf_test_runner.do?sysparm_nostack=true&sysparm_scheduled_tests_only=true"
+    test_runner_url = f"{base_url}/atf_test_runner.do?sysparm_nostack=true&sysparm_scheduled_tests_only=true&sysparm_headless=true"
     driver.get(test_runner_url)
 
     # Wartezeit, damit die Seite geladen wird
