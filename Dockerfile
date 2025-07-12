@@ -1,52 +1,50 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-# Install system dependencies
+# System-Tools installieren
 RUN apt-get update && apt-get install -y \
-    wget \
     curl \
     unzip \
     gnupg \
     ca-certificates \
     fonts-liberation \
-    libasound2 \
     libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libgdk-pixbuf2.0-0 \
     libnspr4 \
     libnss3 \
     libx11-xcb1 \
     libxcomposite1 \
     libxdamage1 \
     libxrandr2 \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
-    libxshmfence1
+    libgbm1 \
+    libgtk-3-0 \
+    wget \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome
+# Google Chrome installieren (Version 138)
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb
+    apt-get update && \
+    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
+    rm google-chrome-stable_current_amd64.deb
 
-# Installiere die passende Version von ChromeDriver für die Version von Chrome
-# Installiere die passende Version von ChromeDriver für Version 136.0.7103.92
-RUN google-chrome --version && \
-    CHROMEDRIVER_VERSION="136.0.7103.92" && \
-    wget -q -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
-    rm /tmp/chromedriver.zip && \
-    chmod +x /usr/local/bin/chromedriver-linux64/chromedriver && \
-    mv /usr/local/bin/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+# Passenden ChromeDriver (v138) installieren
+RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/138.0.7204.94/linux64/chromedriver-linux64.zip -O chromedriver.zip && \
+    unzip chromedriver.zip && \
+    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /usr/local/bin/chromedriver && \
+    rm -rf chromedriver*
 
-# Set working directory
+# Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt .
+# Projektdateien hinzufügen
+COPY . /app
+
+# Abhängigkeiten installieren
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your application
-COPY . .
+# Umgebungsvariablen für headless Chrome (falls nötig)
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV CHROMEDRIVER=/usr/local/bin/chromedriver
 
-CMD ["python", "/app/snc.py"]
+# Startbefehl
+CMD ["python", "snc.py"]
