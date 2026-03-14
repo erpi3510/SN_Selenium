@@ -52,7 +52,7 @@ try:
     # Login-Button klicken
     driver.find_element(By.ID, "sysverb_login").click()
 
-    # Warten, bis die nächste Seite geladen ist
+    # Warten, bis die nächste Seite geladen ist nice
     WebDriverWait(driver, 40).until(
         EC.url_contains("ui_page.do")
     )
