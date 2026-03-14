@@ -36,6 +36,7 @@ jobs:
               # Display Name of the Job
               job-name: 'ServiceNow DevOps Change'
           - name: Stop Pipeline
-            if: always()
+            if: success()
             run: exit 0
+
 
