@@ -35,4 +35,7 @@ jobs:
               context-github: ${{ toJSON(github) }}
               # Display Name of the Job
               job-name: 'ServiceNow DevOps Change'
+          - name: Stop Pipeline
+            if: always()
+            run: exit 0
 
