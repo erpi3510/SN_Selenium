@@ -13,31 +13,26 @@ jobs:
         uses: actions/checkout@v4
       - name: Einfacher Build Schritt
         run: echo "Build erfolgreich!"
-        
-  create-servicenow-change:
-    runs-on: ubuntu-latest
-    environment: Snow
-    steps:
-      - name: Change Request via REST API
-        env:
-          SN_INSTANCE_URL: ${{ secrets.SN_INSTANCE_URL }}
-          SN_DEVOPS_USER: ${{ secrets.SN_DEVOPS_USER }}
-          SN_DEVOPS_PASSWORD: ${{ secrets.SN_DEVOPS_PASSWORD }}
-        run: |
-          # Setze Basic Auth Header (Base64 codiert)
-          ENCODED_AUTH=$(echo -n "${SN_DEVOPS_USER}:${SN_DEVOPS_PASSWORD}" | base64)
 
-          echo "Sende Anfrage an: $SN_INSTANCE_URL"
+  ServiceNowDevOpsChange:
+        # jobs that must complete successfully before this job will run
+        needs: build
+        # type of machine to run the job on
+        runs-on: ubuntu-latest
+        name: 'ServiceNow DevOps Change'
+        steps:
+          - name: ServiceNow Change
+            # Ensure to update to the latest version of the custom action, for e.g. ServiceNow/servicenow-devops-change@v5.1.0
+            uses: ServiceNow/servicenow-devops-change@VERSION
+            with:
+              # Devops Integration Token
+              devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+              # ServiceNow Instance URL
+              instance-url: ${{ secrets.SN_INSTANCE_URL }}
+              # Orchestration Tool Id
+              tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+              # GitHub Context
+              context-github: ${{ toJSON(github) }}
+              # Display Name of the Job
+              job-name: 'ServiceNow DevOps Change'
 
-          curl -v -X POST "$SN_INSTANCE_URL/api/now/table/change_request" \
-            -H "Accept: application/json" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Basic $ENCODED_AUTH" \
-            -d '{
-                  "short_description": "Deployment via GitHub Actions",
-                  "category": "Software",
-                  "priority": "2",
-                  "start_date": "2025-06-25 12:00:00",
-                  "end_date": "2025-06-25 13:00:00",
-                  "comments": "Created by CI/CD pipeline"
-                }'
