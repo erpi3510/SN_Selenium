@@ -23,7 +23,7 @@ jobs:
         steps:
           - name: ServiceNow Change
             # Ensure to update to the latest version of the custom action, for e.g. ServiceNow/servicenow-devops-change@v5.1.0
-            uses: ServiceNow/servicenow-devops-change@VERSION
+            uses: ServiceNow/servicenow-devops-change@v5.1.0
             with:
               # Devops Integration Token
               devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
