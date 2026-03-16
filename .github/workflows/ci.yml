@@ -1,4 +1,4 @@
-name: Pipeline mit ServiceNow Change Controled
+name: Pipelines mit ServiceNow Change Controled
 
 on:
   push:
