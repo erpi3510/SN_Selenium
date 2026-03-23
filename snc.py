@@ -26,7 +26,7 @@ base_url = get_docker_secret("sn_url")
 # Headless Chrome konfigurieren
 options = Options()
 options.add_argument('--headless')  # Keine GUI
-options.add_argument('--disable-gpu')  # Deaktiviert GPU-Beschleunigung
+options.add_argument('--disable-gpu')  # Deaktiviert GPU-Beschleunigungen
 options.add_argument('--no-sandbox')  # Verhindert Sandbox-Probleme
 
 # Chrome WebDriver starten
