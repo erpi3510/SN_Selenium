@@ -27,7 +27,7 @@ base_url = get_docker_secret("sn_url")
 options = Options()
 options.add_argument('--headless')  # Keine GUI
 options.add_argument('--disable-gpu')  # Deaktiviert GPU-Beschleunigungen
-options.add_argument('--no-sandbox')  # Verhindert Sandbox-Probleme
+options.add_argument('--no-sandbox')  # Verhindert Sandbox-Problemen Tim
 
 # Chrome WebDriver starten
 driver = webdriver.Chrome(options=options)
