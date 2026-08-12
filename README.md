@@ -88,6 +88,18 @@ docker run -d --name sn-runner-all \
   sn-sso-launcher
 ```
 
+## Proxy
+
+Set `PROXY_SERVER` (and optionally `PROXY_USERNAME`/`PROXY_PASSWORD`) to
+route the browser traffic through a proxy. Works as env vars or Docker secrets
+(`proxy_server`, `proxy_username`, `proxy_password`).
+
+```bash
+-e PROXY_SERVER="http://myproxy.example.com:3128"
+-e PROXY_USERNAME="user"
+-e PROXY_PASSWORD="pass"
+```
+
 ## Notes
 
 - No Basic Auth is used.

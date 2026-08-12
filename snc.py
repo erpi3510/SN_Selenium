@@ -88,16 +88,37 @@ def get_target_url(base_url: str):
     return f"{base_url.rstrip('/')}{path}"
 
 
+def get_proxy_config():
+    server = os.getenv("PROXY_SERVER") or read_secret("proxy_server")
+    if not server:
+        return None
+
+    proxy = {"server": server}
+    username = os.getenv("PROXY_USERNAME") or read_secret("proxy_username")
+    password = os.getenv("PROXY_PASSWORD") or read_secret("proxy_password")
+    if username:
+        proxy["username"] = username
+    if password:
+        proxy["password"] = password
+    return proxy
+
+
 def main():
     base_url = require_value("SN_URL", read_secret("sn_url"))
     login_url = get_login_url()
     target_url = get_target_url(base_url)
+    proxy = get_proxy_config()
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-dev-shm-usage"],
-        )
+        launch_kwargs = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage"],
+        }
+        if proxy:
+            print(f"Using proxy: {proxy['server']}")
+            launch_kwargs["proxy"] = proxy
+
+        browser = playwright.chromium.launch(**launch_kwargs)
         context = browser.new_context()
         page = context.new_page()
 
