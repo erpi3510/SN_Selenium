@@ -129,9 +129,15 @@ def main():
                 if login_response is None or not login_response.ok:
                     print("ERROR: Login failed, skipping runner request this cycle.")
                     return 1
+                if "login" in page.url.lower():
+                    print(f"ERROR: Login appears to have failed, still on a login page: {page.url}")
+                    return 1
 
             runner_response = open_page(page, target_url, "Runner page")
             if runner_response is None or not runner_response.ok:
+                return 1
+            if "login" in page.url.lower():
+                print(f"ERROR: Runner page redirected to a login page, session invalid: {page.url}")
                 return 1
 
             print(f"Runner page title: {page.title()!r}")
