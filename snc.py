@@ -34,15 +34,28 @@ DEBUG_DIR = os.getenv("DEBUG_DIR", "/app/debug")
 shutdown_requested = False
 
 
+# ---------------------------------------------------------------------------
+# Shutdown handling
+# ---------------------------------------------------------------------------
+
 def _handle_shutdown(signum, frame):
     global shutdown_requested
-    print(f"Shutdown signal received: {signum}", flush=True)
+
+    print(
+        f"Shutdown signal received: {signum}",
+        flush=True,
+    )
+
     shutdown_requested = True
 
 
+# ---------------------------------------------------------------------------
+# Secrets / configuration
+# ---------------------------------------------------------------------------
+
 def read_secret(secret_name: str):
     """
-    Read config from environment variable or Docker secret.
+    Read a value from an environment variable or Docker secret.
     """
 
     env_names = [
@@ -53,13 +66,21 @@ def read_secret(secret_name: str):
 
     for env_name in env_names:
         value = os.getenv(env_name)
+
         if value and value.strip():
             return value.strip()
 
-    secret_file = os.path.join(SECRET_PATH, secret_name)
+    secret_file = os.path.join(
+        SECRET_PATH,
+        secret_name,
+    )
 
     try:
-        with open(secret_file, "r", encoding="utf-8") as handle:
+        with open(
+            secret_file,
+            "r",
+            encoding="utf-8",
+        ) as handle:
             value = handle.read().strip()
 
         if value:
@@ -86,7 +107,7 @@ def get_login_url():
     One-time SSO bootstrap URL.
 
     Example:
-        https://example.service-now.com/sso?token=...
+        https://example.service-now.com/login_with_sso.do?...
     """
 
     return (
@@ -98,15 +119,23 @@ def get_login_url():
 
 
 def get_target_url(base_url: str):
+    """
+    Build the ATF runner URL.
+    """
+
     explicit_target = os.getenv("TARGET_URL")
 
     if explicit_target:
         return explicit_target.strip()
 
-    runner_mode = os.getenv(
-        "RUNNER_MODE",
-        "scheduled",
-    ).strip().lower()
+    runner_mode = (
+        os.getenv(
+            "RUNNER_MODE",
+            "scheduled",
+        )
+        .strip()
+        .lower()
+    )
 
     if runner_mode in {
         "all",
@@ -121,6 +150,10 @@ def get_target_url(base_url: str):
 
 
 def get_proxy_config():
+    """
+    Proxy configuration is completely optional.
+    """
+
     server = (
         os.getenv("PROXY_SERVER")
         or read_secret("proxy_server")
@@ -152,15 +185,22 @@ def get_proxy_config():
     return proxy
 
 
+# ---------------------------------------------------------------------------
+# URL helpers
+# ---------------------------------------------------------------------------
+
 def mask_url(url: str):
     """
-    Avoid printing one-time SSO tokens into logs.
+    Redact query parameters so SSO tokens do not appear in logs.
     """
 
     if not url:
         return url
 
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return "<invalid-url>"
 
     if not parsed.query:
         return url
@@ -174,10 +214,6 @@ def mask_url(url: str):
 
 
 def same_instance(url: str, base_url: str):
-    """
-    Check whether a URL belongs to the configured ServiceNow host.
-    """
-
     try:
         return (
             urlparse(url).netloc.lower()
@@ -186,6 +222,10 @@ def same_instance(url: str, base_url: str):
     except Exception:
         return False
 
+
+# ---------------------------------------------------------------------------
+# Browser logging
+# ---------------------------------------------------------------------------
 
 def setup_browser_logging(page):
     def on_console(message):
@@ -224,9 +264,16 @@ def setup_browser_logging(page):
     page.on("requestfailed", on_request_failed)
 
 
+# ---------------------------------------------------------------------------
+# Debugging
+# ---------------------------------------------------------------------------
+
 def save_debug_info(page, prefix: str):
     try:
-        os.makedirs(DEBUG_DIR, exist_ok=True)
+        os.makedirs(
+            DEBUG_DIR,
+            exist_ok=True,
+        )
 
         timestamp = int(time.time())
 
@@ -270,7 +317,7 @@ def save_debug_info(page, prefix: str):
 
     try:
         body = page.locator("body").inner_text(
-            timeout=5000,
+            timeout=5000
         )
 
         body_snippet = (
@@ -291,13 +338,21 @@ def save_debug_info(page, prefix: str):
         )
 
 
+# ---------------------------------------------------------------------------
+# Navigation
+# ---------------------------------------------------------------------------
+
 def open_page(
     page,
     url: str,
     label: str,
     redact_url: bool = False,
 ):
-    shown_url = mask_url(url) if redact_url else url
+    shown_url = (
+        mask_url(url)
+        if redact_url
+        else url
+    )
 
     print("")
     print(
@@ -334,7 +389,11 @@ def open_page(
         )
         return None
 
-    status = response.status if response else "unknown"
+    status = (
+        response.status
+        if response
+        else "unknown"
+    )
 
     print(
         f"{label}: HTTP {status}",
@@ -355,12 +414,17 @@ def open_page(
     return response
 
 
+# ---------------------------------------------------------------------------
+# Authentication detection
+# ---------------------------------------------------------------------------
+
 def looks_like_login_page(page):
     """
-    Conservative login-page detection.
+    Detect obvious authentication redirects.
 
-    Do not treat generic 'sso' in the URL as failure because
-    successful one-time-token flows may legitimately use /sso.
+    Important:
+    generic 'sso' is intentionally NOT treated as an error because
+    the legitimate one-time login URL itself may contain /sso.
     """
 
     try:
@@ -370,9 +434,11 @@ def looks_like_login_page(page):
 
     url_indicators = (
         "/login.do",
+        "login.microsoftonline.com",
         "signin",
         "sign-in",
         "oauth_login",
+        "saml2",
         "saml_redirect",
         "authenticate",
     )
@@ -398,9 +464,11 @@ def looks_like_login_page(page):
         pass
 
     try:
-        body = page.locator("body").inner_text(
-            timeout=2000
-        ).lower()
+        body = (
+            page.locator("body")
+            .inner_text(timeout=2000)
+            .lower()
+        )
 
         body_indicators = (
             "please sign in",
@@ -419,18 +487,33 @@ def looks_like_login_page(page):
     return False
 
 
-def consume_one_time_sso(page, login_url: str):
+# ---------------------------------------------------------------------------
+# One-time SSO
+# ---------------------------------------------------------------------------
+
+def consume_one_time_sso(
+    page,
+    login_url: str,
+):
     """
     Consume LOGIN_URL exactly once.
 
-    The URL is never revisited or retried automatically because
-    the token may be single-use.
+    IMPORTANT:
+    - No retries.
+    - No second request to LOGIN_URL.
+    - No call to SN_URL afterwards for validation.
+    - Existing browser cookies/session are used directly by ATF runner.
     """
 
     print("")
     print("=" * 70)
     print("One-time SSO bootstrap")
     print("=" * 70)
+
+    print(
+        "IMPORTANT: LOGIN_URL will be requested exactly once.",
+        flush=True,
+    )
 
     response = open_page(
         page,
@@ -441,7 +524,7 @@ def consume_one_time_sso(page, login_url: str):
 
     if response is None:
         print(
-            "ERROR: one-time SSO URL could not be loaded.",
+            "ERROR: one-time SSO request failed.",
             flush=True,
         )
         return False
@@ -454,12 +537,17 @@ def consume_one_time_sso(page, login_url: str):
         )
         return False
 
-    # Allow redirects, cookie writes and client-side scripts to finish.
+    # Allow cookies and JavaScript-driven redirects to complete.
+    # This does NOT make another request to LOGIN_URL.
     page.wait_for_timeout(2000)
 
     print(
-        "One-time SSO URL consumed. "
-        "It will not be requested again.",
+        "One-time SSO URL consumed.",
+        flush=True,
+    )
+
+    print(
+        "LOGIN_URL will NOT be requested again.",
         flush=True,
     )
 
@@ -471,73 +559,24 @@ def consume_one_time_sso(page, login_url: str):
     return True
 
 
-def verify_servicenow_session(
+# ---------------------------------------------------------------------------
+# ATF runner
+# ---------------------------------------------------------------------------
+
+def start_runner(
     page,
+    target_url: str,
     base_url: str,
 ):
     """
-    Verify authentication using the already-created browser session.
+    Open ATF runner directly after SSO.
 
-    No SSO retry occurs here.
+    This is intentionally the FIRST navigation after the one-time
+    SSO URL.
+
+    There is no intermediate request to SN_URL.
     """
 
-    print("")
-    print("=" * 70)
-    print("Verifying ServiceNow session")
-    print("=" * 70)
-
-    response = open_page(
-        page,
-        base_url,
-        "ServiceNow session check",
-    )
-
-    if response is None:
-        print(
-            "ERROR: ServiceNow instance could not be loaded.",
-            flush=True,
-        )
-        return False
-
-    if not response.ok:
-        print(
-            "ERROR: ServiceNow session check returned "
-            f"HTTP {response.status}.",
-            flush=True,
-        )
-        return False
-
-    page.wait_for_timeout(1000)
-
-    if looks_like_login_page(page):
-        print(
-            "ERROR: ServiceNow session is not authenticated.",
-            flush=True,
-        )
-
-        save_debug_info(
-            page,
-            "session_not_authenticated",
-        )
-
-        return False
-
-    if not same_instance(page.url, base_url):
-        print(
-            "WARNING: session check ended on another host: "
-            f"{mask_url(page.url)}",
-            flush=True,
-        )
-
-    print(
-        "ServiceNow session is authenticated.",
-        flush=True,
-    )
-
-    return True
-
-
-def start_runner(page, target_url: str):
     print("")
     print("=" * 70)
     print("Starting Scheduled ATF Client Test Runner")
@@ -577,8 +616,20 @@ def start_runner(page, target_url: str):
     def capture_page_error(error):
         runner_errors.append(str(error))
 
-    page.on("response", capture_response)
-    page.on("pageerror", capture_page_error)
+    page.on(
+        "response",
+        capture_response,
+    )
+
+    page.on(
+        "pageerror",
+        capture_page_error,
+    )
+
+    print(
+        "Opening ATF runner directly with the SSO session.",
+        flush=True,
+    )
 
     response = open_page(
         page,
@@ -591,6 +642,12 @@ def start_runner(page, target_url: str):
             "ERROR: ATF runner request failed.",
             flush=True,
         )
+
+        save_debug_info(
+            page,
+            "runner_request_failed",
+        )
+
         return False
 
     if not response.ok:
@@ -598,7 +655,51 @@ def start_runner(page, target_url: str):
             f"ERROR: ATF runner returned HTTP {response.status}.",
             flush=True,
         )
+
+        save_debug_info(
+            page,
+            "runner_http_error",
+        )
+
         return False
+
+    # -----------------------------------------------------------------------
+    # Detect authentication redirect
+    # -----------------------------------------------------------------------
+
+    page.wait_for_timeout(1000)
+
+    if looks_like_login_page(page):
+        print(
+            "ERROR: ATF runner redirected to authentication.",
+            flush=True,
+        )
+
+        print(
+            "The one-time SSO URL was NOT retried.",
+            flush=True,
+        )
+
+        save_debug_info(
+            page,
+            "runner_authentication_redirect",
+        )
+
+        return False
+
+    if not same_instance(
+        page.url,
+        base_url,
+    ):
+        print(
+            "WARNING: ATF runner ended on another host: "
+            f"{mask_url(page.url)}",
+            flush=True,
+        )
+
+    # -----------------------------------------------------------------------
+    # Wait for runner initialization
+    # -----------------------------------------------------------------------
 
     print(
         "Waiting for ATF runner JavaScript initialization.",
@@ -623,7 +724,10 @@ def start_runner(page, target_url: str):
         "runner",
     )
 
-    while time.monotonic() < startup_deadline:
+    while (
+        time.monotonic()
+        < startup_deadline
+    ):
 
         if page.is_closed():
             print(
@@ -634,7 +738,13 @@ def start_runner(page, target_url: str):
 
         if looks_like_login_page(page):
             print(
-                "ERROR: runner redirected to authentication.",
+                "ERROR: runner session redirected "
+                "to authentication.",
+                flush=True,
+            )
+
+            print(
+                "LOGIN_URL will not be reused.",
                 flush=True,
             )
 
@@ -646,14 +756,19 @@ def start_runner(page, target_url: str):
             return False
 
         try:
-            body = page.locator("body").inner_text(
-                timeout=3000
+            body = (
+                page.locator("body")
+                .inner_text(timeout=3000)
             )
+
             last_body = body
+
         except Exception:
             body = ""
 
-        normalized_body = body.lower()
+        normalized_body = (
+            body.lower()
+        )
 
         for indicator in positive_indicators:
             if indicator in normalized_body:
@@ -664,12 +779,15 @@ def start_runner(page, target_url: str):
                     f"{indicator!r}",
                     flush=True,
                 )
+
                 break
 
         if found_indicator:
             break
 
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(
+            1000
+        )
 
     if not found_indicator:
         print(
@@ -678,19 +796,19 @@ def start_runner(page, target_url: str):
             flush=True,
         )
 
-    if looks_like_login_page(page):
-        print(
-            "ERROR: runner is on an authentication page.",
-            flush=True,
-        )
-        return False
+    # -----------------------------------------------------------------------
+    # Check obvious page errors
+    # -----------------------------------------------------------------------
 
-    body_lower = last_body.lower()
+    body_lower = (
+        last_body.lower()
+    )
 
     error_indicators = (
         "access denied",
         "not authorized",
         "not authorised",
+        "security constraints",
         "insufficient privileges",
         "permission denied",
         "page not found",
@@ -700,7 +818,8 @@ def start_runner(page, target_url: str):
     for indicator in error_indicators:
         if indicator in body_lower:
             print(
-                f"ERROR: runner page contains {indicator!r}.",
+                "ERROR: runner page contains "
+                f"{indicator!r}.",
                 flush=True,
             )
 
@@ -711,18 +830,37 @@ def start_runner(page, target_url: str):
 
             return False
 
+    # -----------------------------------------------------------------------
+    # JavaScript check
+    # -----------------------------------------------------------------------
+
     try:
-        js_ok = page.evaluate("() => true")
+        js_ok = page.evaluate(
+            "() => true"
+        )
+
     except Exception as exc:
         print(
-            f"ERROR: runner JavaScript check failed: {exc}",
+            "ERROR: runner JavaScript check failed: "
+            f"{exc}",
+            flush=True,
+        )
+
+        save_debug_info(
+            page,
+            "runner_javascript_error",
+        )
+
+        return False
+
+    if js_ok is not True:
+        print(
+            "ERROR: runner JavaScript is not responsive.",
             flush=True,
         )
         return False
 
-    if js_ok is not True:
-        return False
-
+    print("")
     print(
         f"Runner final URL: {mask_url(page.url)}",
         flush=True,
@@ -732,6 +870,10 @@ def start_runner(page, target_url: str):
         f"Runner title: {page.title()!r}",
         flush=True,
     )
+
+    # -----------------------------------------------------------------------
+    # Diagnostics
+    # -----------------------------------------------------------------------
 
     if runner_errors:
         print(
@@ -747,7 +889,7 @@ def start_runner(page, target_url: str):
             )
 
     print(
-        f"ATF-related network responses observed: "
+        "ATF-related network responses observed: "
         f"{len(runner_requests)}",
         flush=True,
     )
@@ -765,25 +907,54 @@ def start_runner(page, target_url: str):
     return True
 
 
+# ---------------------------------------------------------------------------
+# Keepalive
+# ---------------------------------------------------------------------------
+
 def keep_runner_alive(page):
+    """
+    Keep Chromium and the ATF runner alive.
+
+    IMPORTANT:
+    Authentication is never retried.
+    LOGIN_URL is never reused.
+    """
+
     print("")
     print("=" * 70)
     print("Scheduled ATF runner keepalive")
     print("=" * 70)
 
+    print(
+        f"Keepalive interval: {KEEPALIVE_SECONDS}s",
+        flush=True,
+    )
+
     check_number = 0
 
     while not shutdown_requested:
 
-        remaining = KEEPALIVE_SECONDS
+        remaining = (
+            KEEPALIVE_SECONDS
+        )
 
         while (
             remaining > 0
             and not shutdown_requested
         ):
-            sleep_time = min(1, remaining)
-            time.sleep(sleep_time)
-            remaining -= sleep_time
+
+            sleep_time = min(
+                1,
+                remaining,
+            )
+
+            time.sleep(
+                sleep_time
+            )
+
+            remaining -= (
+                sleep_time
+            )
 
         if shutdown_requested:
             break
@@ -798,9 +969,15 @@ def keep_runner_alive(page):
                 )
                 return False
 
-            current_url = page.url
-            title = page.title()
+            current_url = (
+                page.url
+            )
 
+            title = (
+                page.title()
+            )
+
+            print("")
             print(
                 f"Keepalive #{check_number}: "
                 f"url={mask_url(current_url)!r}, "
@@ -808,9 +985,19 @@ def keep_runner_alive(page):
                 flush=True,
             )
 
+            # ---------------------------------------------------------------
+            # Authentication loss
+            # ---------------------------------------------------------------
+
             if looks_like_login_page(page):
                 print(
-                    "ERROR: runner session lost authentication.",
+                    "ERROR: ATF runner lost authentication.",
+                    flush=True,
+                )
+
+                print(
+                    "LOGIN_URL will NOT be reused because "
+                    "it may be single-use.",
                     flush=True,
                 )
 
@@ -821,23 +1008,61 @@ def keep_runner_alive(page):
 
                 return False
 
-            if page.evaluate("() => true") is not True:
+            # ---------------------------------------------------------------
+            # Browser / JavaScript health
+            # ---------------------------------------------------------------
+
+            try:
+                browser_alive = page.evaluate(
+                    "() => true"
+                )
+
+            except Exception as exc:
                 print(
-                    "ERROR: runner JavaScript is no longer responsive.",
+                    "ERROR: JavaScript execution failed: "
+                    f"{exc}",
                     flush=True,
                 )
                 return False
 
-            if page.locator("body").count() == 0:
+            if browser_alive is not True:
+                print(
+                    "ERROR: runner JavaScript "
+                    "is no longer responsive.",
+                    flush=True,
+                )
+                return False
+
+            # ---------------------------------------------------------------
+            # DOM check
+            # ---------------------------------------------------------------
+
+            body_count = (
+                page.locator("body")
+                .count()
+            )
+
+            if body_count == 0:
                 print(
                     "ERROR: runner page has no document body.",
                     flush=True,
                 )
+
+                save_debug_info(
+                    page,
+                    "keepalive_missing_body",
+                )
+
                 return False
 
+            # ---------------------------------------------------------------
+            # Diagnostic body snippet
+            # ---------------------------------------------------------------
+
             try:
-                body = page.locator("body").inner_text(
-                    timeout=3000
+                body = (
+                    page.locator("body")
+                    .inner_text(timeout=3000)
                 )
 
                 snippet = (
@@ -853,7 +1078,8 @@ def keep_runner_alive(page):
 
             except Exception as exc:
                 print(
-                    f"WARNING: could not read runner body: {exc}",
+                    "WARNING: could not read runner body: "
+                    f"{exc}",
                     flush=True,
                 )
 
@@ -863,13 +1089,17 @@ def keep_runner_alive(page):
                 flush=True,
             )
 
-            save_debug_info(
-                page,
-                "keepalive_failure",
-            )
+            try:
+                save_debug_info(
+                    page,
+                    "keepalive_failure",
+                )
+            except Exception:
+                pass
 
             return False
 
+    print("")
     print(
         "Shutdown requested. Closing runner.",
         flush=True,
@@ -878,10 +1108,18 @@ def keep_runner_alive(page):
     return True
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def main():
     print("=" * 70)
     print("ServiceNow ATF Scheduled Runner")
     print("=" * 70)
+
+    # -----------------------------------------------------------------------
+    # Configuration
+    # -----------------------------------------------------------------------
 
     base_url = require_value(
         "SN_URL",
@@ -893,11 +1131,15 @@ def main():
         get_login_url(),
     )
 
-    target_url = get_target_url(
-        base_url
+    target_url = (
+        get_target_url(
+            base_url
+        )
     )
 
-    proxy = get_proxy_config()
+    proxy = (
+        get_proxy_config()
+    )
 
     print(
         f"ServiceNow URL: {base_url}",
@@ -925,6 +1167,10 @@ def main():
             flush=True,
         )
 
+    # -----------------------------------------------------------------------
+    # Playwright
+    # -----------------------------------------------------------------------
+
     with sync_playwright() as playwright:
 
         launch_kwargs = {
@@ -942,6 +1188,9 @@ def main():
             **launch_kwargs
         )
 
+        # IMPORTANT:
+        # Authentication and ATF runner use exactly the same
+        # browser context and therefore the same cookies/session.
         context = browser.new_context()
 
         page = context.new_page()
@@ -950,41 +1199,89 @@ def main():
             PAGE_TIMEOUT_MS
         )
 
-        setup_browser_logging(page)
+        setup_browser_logging(
+            page
+        )
 
         try:
-            # IMPORTANT:
-            # LOGIN_URL is intentionally consumed exactly once.
+            # ---------------------------------------------------------------
+            # ONE-TIME SSO
+            #
+            # This is the ONLY place in the complete application where
+            # LOGIN_URL is passed to page.goto().
+            # ---------------------------------------------------------------
+
             if not consume_one_time_sso(
                 page,
                 login_url,
             ):
                 return 1
 
-            # Do not use LOGIN_URL again from this point forward.
+            # ---------------------------------------------------------------
+            # Destroy our reference immediately.
+            #
+            # The URL/token must never be reused.
+            # ---------------------------------------------------------------
+
             login_url = None
 
-            # Verify that the session/cookies created by the SSO URL
-            # work against ServiceNow.
-            if not verify_servicenow_session(
+            print("")
+            print(
+                "One-time SSO phase complete.",
+                flush=True,
+            )
+
+            print(
+                "No ServiceNow home-page/session-check request "
+                "will be performed.",
+                flush=True,
+            )
+
+            print(
+                "Opening ATF runner directly.",
+                flush=True,
+            )
+
+            # ---------------------------------------------------------------
+            # IMPORTANT:
+            #
+            # DO NOT:
+            #
+            #     page.goto(base_url)
+            #
+            # DO NOT:
+            #
+            #     consume_one_time_sso(...)
+            #
+            # again.
+            #
+            # Directly navigate to the ATF runner using the cookies/session
+            # created by the one-time SSO request.
+            # ---------------------------------------------------------------
+
+            if not start_runner(
                 page,
+                target_url,
                 base_url,
             ):
                 return 1
 
-            # Open Scheduled ATF Runner in the SAME browser context.
-            if not start_runner(
-                page,
-                target_url,
-            ):
-                return 1
+            # ---------------------------------------------------------------
+            # Keep runner alive
+            # ---------------------------------------------------------------
 
-            if not keep_runner_alive(page):
+            if not keep_runner_alive(
+                page
+            ):
                 return 1
 
             return 0
 
         except KeyboardInterrupt:
+            print(
+                "Keyboard interrupt received.",
+                flush=True,
+            )
             return 0
 
         except Exception as exc:
@@ -1004,18 +1301,39 @@ def main():
             return 1
 
         finally:
+            print(
+                "Closing browser context.",
+                flush=True,
+            )
+
             try:
                 context.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    f"WARNING: could not close context: {exc}",
+                    flush=True,
+                )
+
+            print(
+                "Closing browser.",
+                flush=True,
+            )
 
             try:
                 browser.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    f"WARNING: could not close browser: {exc}",
+                    flush=True,
+                )
 
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+
     signal.signal(
         signal.SIGTERM,
         _handle_shutdown,
@@ -1026,4 +1344,6 @@ if __name__ == "__main__":
         _handle_shutdown,
     )
 
-    sys.exit(main())
+    sys.exit(
+        main()
+    )
